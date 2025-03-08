@@ -1,11 +1,14 @@
+pub mod module_bindings;
 pub mod player;
+pub mod server_connection;
 
 use bevy::prelude::*;
 use player::{Player, PlayerPlugin};
+use server_connection::SpaceTimeConnectionPlugin;
 
 fn main() {
     let mut app = App::new();
-    app.add_plugins((DefaultPlugins, PlayerPlugin));
+    app.add_plugins((DefaultPlugins, PlayerPlugin, SpaceTimeConnectionPlugin));
     app.add_systems(Startup, setup);
     app.run();
 }

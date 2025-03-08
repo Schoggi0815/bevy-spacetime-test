@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use spacetimedb_sdk::Identity;
 
 pub struct PlayerPlugin;
 
@@ -11,6 +12,10 @@ impl Plugin for PlayerPlugin {
 #[derive(Component)]
 #[require(Transform)]
 pub struct Player;
+
+#[derive(Component)]
+#[require(Transform)]
+pub struct OtherPlayer(pub Identity);
 
 const SPEED: f32 = 4.;
 

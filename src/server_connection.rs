@@ -26,12 +26,15 @@ const DB_NAME: &str = "test-server";
 #[derive(Resource)]
 struct PlayerEvents {
     receiver: Receiver<PlayerUpdateEvent>,
+    delete_receiver: Receiver<PlayerDeleteEvent>,
 }
 
 struct PlayerUpdateEvent {
     position: Vec3,
     player_id: Identity,
 }
+
+struct PlayerDeleteEvent(Identity);
 
 fn startup(mut commands: Commands) {
     let token = creds_store().load().expect("Error loading credentials");
@@ -54,11 +57,13 @@ fn startup(mut commands: Commands) {
         .build()
         .expect("Failed to connect");
 
+    let (delete_sender, delete_receiver) = unbounded::<PlayerDeleteEvent>();
+
     let (sender, receiver) = unbounded::<PlayerUpdateEvent>();
     let sender2 = sender.clone();
 
-    connection.db.player().on_insert(move |_ctx, player| {
-        if _ctx.identity() == player.identity {
+    connection.db.player().on_insert(move |ctx, player| {
+        if ctx.identity() == player.identity {
             return;
         }
         sender
@@ -69,8 +74,8 @@ fn startup(mut commands: Commands) {
             .expect("unbounded channel should never block!");
     });
 
-    connection.db.player().on_update(move |_ctx, _old, player| {
-        if _ctx.identity() == player.identity {
+    connection.db.player().on_update(move |ctx, _old, player| {
+        if ctx.identity() == player.identity {
             return;
         }
         sender2
@@ -78,6 +83,15 @@ fn startup(mut commands: Commands) {
                 player_id: player.identity,
                 position: Vec3::new(player.position_x, player.position_y, player.position_z),
             })
+            .expect("unbounded channel should never block!");
+    });
+
+    connection.db.player().on_delete(move |ctx, player| {
+        if ctx.identity() == player.identity {
+            return;
+        }
+        delete_sender
+            .try_send(PlayerDeleteEvent(player.identity))
             .expect("unbounded channel should never block!");
     });
 
@@ -90,7 +104,10 @@ fn startup(mut commands: Commands) {
 
     connection.run_threaded();
 
-    commands.insert_resource(PlayerEvents { receiver });
+    commands.insert_resource(PlayerEvents {
+        receiver,
+        delete_receiver,
+    });
 
     commands.insert_resource(ServerConnection(connection));
 }
@@ -116,16 +133,16 @@ fn check_event_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    mut other_player_qeury: Query<(&mut Transform, &OtherPlayer)>,
+    mut other_player_qeury: Query<(Entity, &mut Transform, &OtherPlayer)>,
     player_events: Res<PlayerEvents>,
 ) {
     for event in player_events.receiver.try_iter() {
         let other_player = other_player_qeury
             .iter_mut()
-            .find(|(_, other_player)| other_player.0 == event.player_id);
+            .find(|(_, _, other_player)| other_player.0 == event.player_id);
 
         if let Some(mut other_player) = other_player {
-            other_player.0.translation = event.position;
+            other_player.1.translation = event.position;
         } else {
             let circle = meshes.add(Circle::new(20.0));
             let color = Color::linear_rgb(1., 0., 0.);
@@ -138,10 +155,20 @@ fn check_event_system(
             ));
         }
     }
+
+    for delete_event in player_events.delete_receiver.try_iter() {
+        let other_player = other_player_qeury
+            .iter_mut()
+            .find(|(_, _, other_player)| other_player.0 == delete_event.0);
+
+        if let Some(other_player) = other_player {
+            commands.entity(other_player.0).despawn();
+        }
+    }
 }
 
 fn creds_store() -> credentials::File {
-    credentials::File::new("player-1")
+    credentials::File::new("player-2")
 }
 
 fn on_connected(_ctx: &DbConnection, _identity: Identity, token: &str) {

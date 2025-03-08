@@ -1,4 +1,4 @@
-use bevy::{prelude::*, utils::info};
+use bevy::prelude::*;
 use crossbeam::channel::{unbounded, Receiver};
 use spacetimedb_sdk::{credentials, DbContext, Error, Identity, Table, TableWithPrimaryKey};
 
@@ -34,6 +34,7 @@ struct PlayerUpdateEvent {
 }
 
 fn startup(mut commands: Commands) {
+    let token = creds_store().load().expect("Error loading credentials");
     let connection = DbConnection::builder()
         // Register our `on_connect` callback, which will save our auth token.
         .on_connect(on_connected)
@@ -44,7 +45,7 @@ fn startup(mut commands: Commands) {
         // If the user has previously connected, we'll have saved a token in the `on_connect` callback.
         // In that case, we'll load it and pass it to `with_token`,
         // so we can re-authenticate as the same `Identity`.
-        .with_token(creds_store().load().expect("Error loading credentials"))
+        .with_token(token.clone())
         // Set the database name we chose when we called `spacetime publish`.
         .with_module_name(DB_NAME)
         // Set the URI of the SpacetimeDB host that's running our database.
@@ -55,10 +56,11 @@ fn startup(mut commands: Commands) {
 
     let (sender, receiver) = unbounded::<PlayerUpdateEvent>();
     let sender2 = sender.clone();
-    let sender3 = sender.clone();
 
     connection.db.player().on_insert(move |_ctx, player| {
-        info("Player inserted");
+        if _ctx.identity() == player.identity {
+            return;
+        }
         sender
             .try_send(PlayerUpdateEvent {
                 player_id: player.identity,
@@ -68,6 +70,9 @@ fn startup(mut commands: Commands) {
     });
 
     connection.db.player().on_update(move |_ctx, _old, player| {
+        if _ctx.identity() == player.identity {
+            return;
+        }
         sender2
             .try_send(PlayerUpdateEvent {
                 player_id: player.identity,
@@ -78,19 +83,8 @@ fn startup(mut commands: Commands) {
 
     connection
         .subscription_builder()
-        .on_applied(move |ctx| {
-            for player in ctx.db.player().iter() {
-                sender3
-                    .try_send(PlayerUpdateEvent {
-                        player_id: player.identity,
-                        position: Vec3::new(
-                            player.position_x,
-                            player.position_y,
-                            player.position_z,
-                        ),
-                    })
-                    .expect("unbounded channel should never block!")
-            }
+        .on_error(|_ctx, err| {
+            error!("{}", err);
         })
         .subscribe("SELECT * FROM player WHERE online = true");
 
@@ -147,7 +141,7 @@ fn check_event_system(
 }
 
 fn creds_store() -> credentials::File {
-    credentials::File::new("player-2")
+    credentials::File::new("player-1")
 }
 
 fn on_connected(_ctx: &DbConnection, _identity: Identity, token: &str) {

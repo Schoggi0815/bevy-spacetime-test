@@ -1,6 +1,6 @@
 use spacetimedb::{reducer, table, Identity, ReducerContext, Table};
 
-#[table(name = player)]
+#[table(name = player, public)]
 pub struct Player {
     #[primary_key]
     identity: Identity,

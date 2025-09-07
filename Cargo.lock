@@ -715,9 +715,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_hookup_messenger_self"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e533230c3caf895c1d69a74a7be9e489b861ad8f2e555da667306dcc2ad6f487"
+checksum = "7319fc443357c616eb503a205db95cdd26a3eb77e591cd60bd51c56deacba5a7"
 dependencies = [
  "bevy",
  "bevy_hookup_core",
@@ -726,9 +726,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_hookup_messenger_websocket"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55f09845e78f713987f8cf762a52ca7b8d9488ddfce40e7ce928f605ebdf8622"
+checksum = "b7e2b6f081c2227dd60ba3a9acde92cf5c6c448f78c78605b9ac63114e574091"
 dependencies = [
  "bevy",
  "bevy_hookup_core",

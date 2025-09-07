@@ -27,6 +27,7 @@ async fn main() {
         "schoggi.net".into(),
         6666,
     ))
+    .insert_resource(Time::<Fixed>::from_seconds(0.05))
     .add_systems(Startup, setup)
     .run();
 }
@@ -47,7 +48,7 @@ fn setup(
     let circle = meshes.add(Circle::new(20.0));
     let color = materials.add(Color::linear_rgb(0., 1., 0.));
 
-    for _ in 0..200 {
+    for _ in 0..1000 {
         commands.spawn((
             Mesh2d(circle.clone()),
             MeshMaterial2d(color.clone()),

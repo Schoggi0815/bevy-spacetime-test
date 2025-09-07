@@ -27,6 +27,7 @@ impl Plugin for PlayerPlugin {
 #[require(Transform)]
 pub struct Player {
     pub velocity: Vec3,
+    pub movement_speed: f32,
 }
 
 #[derive(Component)]
@@ -97,8 +98,8 @@ fn move_player_system(
     let adjusted_movement = movement * time.delta_secs();
 
     for (mut transform, mut player) in &mut player_query {
-        player.velocity = movement;
-        transform.translation += adjusted_movement;
+        player.velocity = movement * player.movement_speed;
+        transform.translation += adjusted_movement * player.movement_speed;
     }
 }
 

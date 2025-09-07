@@ -47,7 +47,7 @@ fn setup(
     let circle = meshes.add(Circle::new(20.0));
     let color = materials.add(Color::linear_rgb(0., 1., 0.));
 
-    for _ in 0..100 {
+    for _ in 0..200 {
         commands.spawn((
             Mesh2d(circle.clone()),
             MeshMaterial2d(color.clone()),
@@ -62,6 +62,7 @@ fn setup(
             }),
             Player {
                 velocity: Vec3::ZERO,
+                movement_speed: rand::random_range(0.25..4.0),
             },
         ));
     }

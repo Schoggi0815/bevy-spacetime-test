@@ -24,7 +24,7 @@ async fn main() {
         WebsocketClientPlugin::<Sendables>::default(),
     ))
     .insert_resource(WebsocketClient::<Sendables>::new_with_host_and_port(
-        "schoggi.net".to_string(),
+        "schoggi.net".into(),
         6666,
     ))
     .add_systems(Startup, setup)
@@ -36,21 +36,33 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    commands.spawn(Camera2d);
+    commands.spawn((
+        Camera2d,
+        Projection::Orthographic(OrthographicProjection {
+            scale: 5.,
+            ..OrthographicProjection::default_2d()
+        }),
+    ));
 
     let circle = meshes.add(Circle::new(20.0));
-    let color = Color::linear_rgb(0., 1., 0.);
+    let color = materials.add(Color::linear_rgb(0., 1., 0.));
 
-    commands.spawn((
-        Mesh2d(circle),
-        MeshMaterial2d(materials.add(color)),
-        SyncEntityOwner::new(),
-        Transform::from_xyz(0.0, 0.0, 0.0),
-        Owner::new(PlayerSync {
-            ..Default::default()
-        }),
-        Player {
-            velocity: Vec3::ZERO,
-        },
-    ));
+    for _ in 0..100 {
+        commands.spawn((
+            Mesh2d(circle.clone()),
+            MeshMaterial2d(color.clone()),
+            SyncEntityOwner::new(),
+            Transform::from_xyz(
+                rand::random_range(-1000.0..1000.0),
+                rand::random_range(-1000.0..1000.0),
+                0.0,
+            ),
+            Owner::new(PlayerSync {
+                ..Default::default()
+            }),
+            Player {
+                velocity: Vec3::ZERO,
+            },
+        ));
+    }
 }
